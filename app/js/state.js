@@ -10,6 +10,7 @@ import { SCHEMA_VERSION } from './core/constants.js';
 import { planCopy, selectableUnits } from './core/copy.js';
 import { addDays, boundaryHint, dietDayOf, formatLocalDate } from './core/day.js';
 import { newDay, withGoals } from './core/days.js';
+import { fmtDay } from './core/format.js';
 import { buildSummary } from './core/gptSummary.js';
 import { markDuplicates, parseGptText } from './core/gptParse.js';
 import { newId } from './core/ids.js';
@@ -391,7 +392,7 @@ export class KoudaApp {
       const entries = planCopy({ units, targetDay, nowMs: this.now().getTime(), ids });
       const fresh = entries.filter((e) => !this.db.entries.has(e.id));
       if (!fresh.length) return { message: '這些項目已經複製過了', undoId: null, count: 0 };
-      const message = `已複製 ${fresh.length} 筆到 ${targetDay}`;
+      const message = `已複製 ${fresh.length} 筆到 ${fmtDay(targetDay)}`;
       const undoId = await this.#apply(this.#entryChange({ put: fresh }), message);
       return { message, undoId, count: fresh.length };
     });
@@ -531,7 +532,7 @@ export class KoudaApp {
 
   setEntryValues(id, values) { return this.#edit(id, (e, now) => withValues(e, values, now), '已修改紀錄'); }
 
-  moveEntry(id, day) { return this.#edit(id, (e, now) => withDietDay(e, day, now), `已移到 ${day}`); }
+  moveEntry(id, day) { return this.#edit(id, (e, now) => withDietDay(e, day, now), `已移到 ${fmtDay(day)}`); }
 
   removeEntry(id) {
     return this.#run(async () => {
@@ -560,7 +561,7 @@ export class KoudaApp {
     return this.#run(async () => {
       const now = this.now();
       const list = this.#groupEntries(groupId).map((e) => withDietDay(e, day, now));
-      const label = `已把 ${list[0].group_label} 移到 ${day}`;
+      const label = `已把 ${list[0].group_label} 移到 ${fmtDay(day)}`;
       const undoId = await this.#apply(this.#entryChange({ put: list }), label);
       return { message: label, undoId };
     });
