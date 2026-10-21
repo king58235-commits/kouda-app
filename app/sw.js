@@ -3,8 +3,8 @@
  * 下面 STAMP 區塊由 tools/stamp-version.js 產生，請不要手改；程式有改動後執行 npm run stamp。 */
 
 /* STAMP:BEGIN */
-const VERSION = 'b03ec6e1a6';
-const PRECACHE = ["./","css/app.css","icons/apple-touch-icon.png","icons/icon-192.png","icons/icon-512.png","icons/icon-maskable-512.png","index.html","js/core/backup.js","js/core/constants.js","js/core/day.js","js/core/days.js","js/core/format.js","js/core/gptParse.js","js/core/gptSummary.js","js/core/ids.js","js/core/ledger.js","js/core/library.js","js/core/summary.js","js/core/validate.js","js/main.js","js/state.js","js/store/idb.js","js/store/schema.js","js/ui/home.js","js/ui/index.js","js/ui/pages.js","js/ui/sheets.js","js/ui/util.js","manifest.webmanifest"];
+const VERSION = '391066200a';
+const PRECACHE = ["./","css/app.css","icons/apple-touch-icon.png","icons/icon-192.png","icons/icon-512.png","icons/icon-maskable-512.png","index.html","js/core/adjust.js","js/core/backup.js","js/core/compose.js","js/core/constants.js","js/core/copy.js","js/core/day.js","js/core/days.js","js/core/format.js","js/core/gptParse.js","js/core/gptSummary.js","js/core/ids.js","js/core/ledger.js","js/core/library.js","js/core/recent.js","js/core/search.js","js/core/summary.js","js/core/validate.js","js/main.js","js/state.js","js/store/idb.js","js/store/schema.js","js/ui/home.js","js/ui/index.js","js/ui/pages.js","js/ui/sheets.js","js/ui/util.js","manifest.webmanifest"];
 /* STAMP:END */
 
 const CACHE_PREFIX = 'kouda-shell-';

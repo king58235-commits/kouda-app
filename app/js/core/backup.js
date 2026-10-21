@@ -3,7 +3,7 @@
 import { BACKUP_FORMAT, SCHEMA_VERSION } from './constants.js';
 import { validateFullDoc, validateLibraryDoc } from './validate.js';
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.1.0';
 
 export function defaultSettings() {
   return {
