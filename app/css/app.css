@@ -14,6 +14,7 @@
   --warn-soft: #fff1cf;
   --danger: #b3261e;
   --danger-soft: #fbe3e1;
+  --on-danger: #ffffff;
   --shadow: 0 -2px 12px rgba(0, 0, 0, .12);
   --radius: 14px;
   --bar-h: 64px;
@@ -37,6 +38,7 @@
     --warn-soft: #3d3216;
     --danger: #ff8a80;
     --danger-soft: #4a2220;
+    --on-danger: #3b0907;
     --shadow: 0 -2px 12px rgba(0, 0, 0, .5);
   }
 }
@@ -197,7 +199,12 @@ button:focus-visible, [role=button]:focus-visible, input:focus-visible, select:f
 /* 左滑刪除 */
 .swipe { position: relative; overflow: hidden; }
 .swipe-bg { position: absolute; inset: 0; display: flex; justify-content: flex-end; background: var(--danger); }
-.swipe-del { width: 88px; border: 0; background: var(--danger); color: #fff; font-weight: 700; font-size: .95rem; padding: 0 6px; }
+/* 沒有被滑開時完全隱藏，避免紅色在列的邊緣（小數像素）透出來 */
+@supports selector(:has(*)) {
+  .swipe-bg { visibility: hidden; }
+  .swipe:has(.swipe-row[style*="translateX"]) .swipe-bg { visibility: visible; }
+}
+.swipe-del { width: 88px; border: 0; background: var(--danger); color: var(--on-danger); font-weight: 700; font-size: .95rem; padding: 0 6px; }
 .swipe-row { position: relative; background: var(--surface); touch-action: pan-y; user-select: none; -webkit-user-select: none; will-change: transform; }
 .enter { animation: rowIn .22s var(--ease); }
 .leaving { opacity: 0; border-top-width: 0 !important; transition: height .22s var(--ease), opacity .18s ease-in; }
@@ -219,7 +226,7 @@ button:focus-visible, [role=button]:focus-visible, input:focus-visible, select:f
 /* ---- 提示 ---- */
 #toast-root { position: fixed; left: 0; right: 0; bottom: calc(var(--bar-h) + 10px + env(safe-area-inset-bottom)); z-index: 60; display: flex; justify-content: center; padding: 0 12px; pointer-events: none; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; max-width: 520px; width: 100%; padding: 10px 12px 10px 16px; border-radius: 14px; background: #263029; color: #fff; box-shadow: 0 6px 20px rgba(0, 0, 0, .3); animation: toastIn .2s var(--ease); }
-.toast.error { background: var(--danger); }
+.toast.error { background: var(--danger); color: var(--on-danger); }
 .toast-msg { flex: 1; overflow-wrap: anywhere; }
 .toast-undo { min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .6); background: transparent; color: #fff; font-weight: 700; }
 body.sheet-open #toast-root { z-index: 80; bottom: 16px; }
