@@ -5,6 +5,7 @@ import { daysWithEntries, snapshotDiffs, totalsOfUnits } from '../core/copy.js';
 import { fmtDateTime, fmtDay, fmtGram, fmtKcal, fmtQty } from '../core/format.js';
 import { newId } from '../core/ids.js';
 import { entryKcal, entryProtein, presetTotals } from '../core/summary.js';
+import { icon } from './icons.js';
 import { html } from './util.js';
 
 const memoIds = () => {
@@ -32,8 +33,8 @@ export function install(ctx) {
     const room = app.settings.quick_slots.length < MAX_QUICK_SLOTS;
     const row = (it) => html`<div class="lib-row"><span class="main"><span class="name">${it.type === 'preset' ? html`<span class="tag tag-preset">套餐</span> ` : ''}${it.label}</span>
         <span class="meta">${it.type === 'preset' ? '' : `${fmtKcal(it.kcal)} kcal${it.opaque ? ' 起 ・ 選份量' : ''} ・ `}${tab === 'frequent' ? `近 30 天 ${it.uses} 次` : `最近 ${fmtDateTime(it.lastAt)}`}</span></span>
-        <button class="btn" data-act="cell" data-type="${it.type}" data-id="${it.id}" data-opaque="${it.opaque ? 1 : 0}" aria-label="記入 ${it.label}">＋記入</button>
-        ${room ? html`<button class="btn" data-act="recent-pin" data-type="${it.type}" data-id="${it.id}" aria-label="加入快捷格 ${it.label}" title="加入首頁快捷格">📌</button>` : ''}</div>`;
+        <button class="btn soft" data-act="cell" data-type="${it.type}" data-id="${it.id}" data-opaque="${it.opaque ? 1 : 0}" aria-label="記入 ${it.label}">${icon('plus', { size: 16 })}記入</button>
+        ${room ? html`<button class="btn icon-only" data-act="recent-pin" data-type="${it.type}" data-id="${it.id}" aria-label="加入快捷格 ${it.label}" title="加入首頁快捷格">${icon('pin', { size: 18 })}</button>` : ''}</div>`;
     sheet.show({
       title: '最近／常吃',
       body: html`<div class="seg" role="tablist" aria-label="排序方式">
@@ -43,7 +44,7 @@ export function install(ctx) {
         ${list.length
           ? html`<div class="list">${list.map(row)}</div>`
           : html`<div class="empty-state">${tab === 'recent' ? '還沒有可以列出的食物。' : '近 30 天還沒有重複記過的食物。'}</div>`}
-        <p class="hint">這裡列的是「不在首頁快捷格上」、也沒有封存的食物與套餐，由你自己的紀錄推算。套餐裡的組成不會當成單品的次數。點「＋記入」就記到${fmtDay(app.workingDay)}；📌 可加入快捷格。</p>`,
+        <p class="hint">這裡列的是「不在首頁快捷格上」、也沒有封存的食物與套餐，由你自己的紀錄推算。套餐裡的組成不會當成單品的次數。點「記入」就記到${fmtDay(app.workingDay)}；右邊的圖釘可加入快捷格。</p>`,
     });
   }
 

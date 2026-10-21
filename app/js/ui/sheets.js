@@ -5,6 +5,7 @@ import { QUESTIONS } from '../core/gptSummary.js';
 import { addDays } from '../core/day.js';
 import { hasLevels, pickLevelKcal } from '../core/ledger.js';
 import { entryKcal, entryProtein, presetTotals } from '../core/summary.js';
+import { icon } from './icons.js';
 import { copyText, html, readClipboardText } from './util.js';
 
 const LEVELS = ['low', 'normal', 'high'];
@@ -211,7 +212,7 @@ export function install(ctx) {
       title: '從 GPT 加入',
       body: html`
         <p class="hint">只讀取以「@扣打」開頭的行。解析後先放進待確認清單，按「記入今日」才會寫進帳本。</p>
-        <div class="btn-row"><button class="btn" data-act="paste-read">📋 讀取剪貼簿</button></div>
+        <div class="btn-row"><button class="btn" data-act="paste-read">${icon('clipboard', { size: 18 })}讀取剪貼簿</button></div>
         <div class="field"><label for="paste-text">或在這裡貼上 GPT 的回覆</label>
           <textarea id="paste-text" data-role="paste-text" rows="4" placeholder="@扣打 餐點名稱｜熱量 600-740 kcal｜蛋白質 23 g｜備註">${st.text}</textarea></div>
         <button class="btn" data-act="paste-parse">解析</button>

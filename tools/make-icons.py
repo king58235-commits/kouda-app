@@ -5,7 +5,7 @@ import struct
 import zlib
 from pathlib import Path
 
-GREEN = (31, 122, 77, 255)
+GREEN = (63, 115, 87, 255)  # 與 app.css 的 --accent-fill（#3f7357）一致
 WHITE = (255, 255, 255, 255)
 CLEAR = (0, 0, 0, 0)
 

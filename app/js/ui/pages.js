@@ -5,6 +5,7 @@ import { fileStamp, fmtDateTime, fmtGram, fmtKcal } from '../core/format.js';
 import { foodFromForm, presetFromForm, slotKey } from '../core/library.js';
 import { searchLibrary } from '../core/search.js';
 import { presetTotals } from '../core/summary.js';
+import { icon, logoMark } from './icons.js';
 import {
   canShareFiles, copyText, downloadText, html, shareFile,
 } from './util.js';
@@ -34,7 +35,8 @@ export function install(ctx) {
 
   function renderSetup() {
     return html`<main class="page no-bar setup">
-      <h1>每日飲食扣打</h1>
+      <div class="setup-brand"><span class="logo-tile">${logoMark(40)}</span>
+        <h1>每日飲食扣打</h1></div>
       <p>第一次使用：先匯入你的初始食物清單，之後點一下就能記錄。資料只存在這支手機的瀏覽器裡，不會上傳。</p>
       <button class="btn primary" data-act="setup-import">匯入初始食物清單（選擇檔案或貼上）</button>
       <button class="btn" data-act="setup-restore">還原備份檔</button>
@@ -45,29 +47,30 @@ export function install(ctx) {
 
   // ================= 食物庫 =================
 
-  function foodMeta(f) {
-    const flags = [SOURCE_LABELS[f.source_type], f.needs_confirm ? '待確認' : null,
-      app.settings.quick_slots.some((s) => s.type === 'food' && s.id === f.id) ? '在快捷格' : null].filter(Boolean).join('・');
+  const foodNums = (f) => {
     const kcal = f.kind === 'opaque'
       ? `${LEVEL_LABELS.low} ${fmtKcal(f.kcal_low)}／${LEVEL_LABELS.normal} ${fmtKcal(f.kcal_book)}／${LEVEL_LABELS.high} ${fmtKcal(f.kcal_high)} kcal`
       : `${fmtKcal(f.kcal_book)} kcal／${f.unit}`;
-    return `${kcal}・${f.protein_book == null ? '蛋白質未知' : `蛋白質 ${fmtGram(f.protein_book)} g`}・${flags}`;
-  }
+    return `${kcal}・${f.protein_book == null ? '蛋白質未知' : `蛋白質 ${fmtGram(f.protein_book)} g`}`;
+  };
+  const foodFlags = (f) => [SOURCE_LABELS[f.source_type], f.needs_confirm ? '待確認' : null,
+    app.settings.quick_slots.some((s) => s.type === 'food' && s.id === f.id) ? '在快捷格' : null].filter(Boolean);
+  const foodMeta = (f) => `${foodNums(f)}・${foodFlags(f).join('・')}`;
 
   function foodRow(f) {
     return html`<div class="lib-row"><span class="main"><span class="name">${f.short_label}</span>
-      <span class="meta">${f.full_name === f.short_label ? '' : html`${f.full_name}<br>`}${foodMeta(f)}</span></span>
-      ${f.archived ? '' : html`<button class="btn" data-act="cell" data-type="food" data-id="${f.id}" data-opaque="${f.kind === 'opaque' ? 1 : 0}" aria-label="記入 ${f.short_label}">＋記入</button>`}
-      <button class="btn" data-act="food-edit" data-id="${f.id}" aria-label="編輯 ${f.short_label}">編輯</button></div>`;
+      <span class="meta">${f.full_name === f.short_label ? '' : html`${f.full_name}<br>`}${foodNums(f)}<br>${foodFlags(f).join('・')}</span></span>
+      ${f.archived ? '' : html`<button class="btn soft" data-act="cell" data-type="food" data-id="${f.id}" data-opaque="${f.kind === 'opaque' ? 1 : 0}" aria-label="記入 ${f.short_label}">${icon('plus', { size: 16 })}記入</button>`}
+      <button class="btn link" data-act="food-edit" data-id="${f.id}" aria-label="編輯 ${f.short_label}">編輯</button></div>`;
   }
 
   function presetRow(p) {
     const t = presetTotals(p, app.foods);
     const parts = p.items.map((i) => `${app.foods.get(i.food_id)?.short_label ?? '?'}×${i.qty}`).join(' + ');
-    return html`<div class="lib-row"><span class="main"><span class="name">★ ${p.label}</span>
+    return html`<div class="lib-row"><span class="main"><span class="name"><span class="tag tag-preset">套餐</span>${p.label}</span>
       <span class="meta">${parts}＝${fmtKcal(t.kcal)} kcal・蛋白質 ${fmtGram(t.protein_known_g)} g${t.protein_unknown_count ? `（另 ${t.protein_unknown_count} 項未知）` : ''}</span></span>
-      ${p.archived ? '' : html`<button class="btn" data-act="cell" data-type="preset" data-id="${p.id}" data-opaque="0" aria-label="記入 ${p.label}">＋記入</button>`}
-      <button class="btn" data-act="preset-edit" data-id="${p.id}" aria-label="編輯 ${p.label}">編輯</button></div>`;
+      ${p.archived ? '' : html`<button class="btn soft" data-act="cell" data-type="preset" data-id="${p.id}" data-opaque="0" aria-label="記入 ${p.label}">${icon('plus', { size: 16 })}記入</button>`}
+      <button class="btn link" data-act="preset-edit" data-id="${p.id}" aria-label="編輯 ${p.label}">編輯</button></div>`;
   }
 
   // 搜尋結果區（輸入時只更新這一塊，輸入框不會被重畫、鍵盤不會收起來）
@@ -80,7 +83,7 @@ export function install(ctx) {
     const arch = [...found.foods.filter((f) => f.archived), ...found.presets.filter((p) => p.archived)];
     if (searching && !livePresets.length && !liveFoods.length && !arch.length) {
       return html`<div class="empty-state">找不到「${query.trim()}」。<br>
-        <button class="btn primary" style="margin-top:10px" data-act="food-new-named" data-name="${query.trim()}">＋ 新增食物「${query.trim()}」</button></div>`;
+        <button class="btn primary" style="margin-top:10px" data-act="food-new-named" data-name="${query.trim()}">${icon('plus', { size: 18 })}新增食物「${query.trim()}」</button></div>`;
     }
     return html`
       ${livePresets.length || !searching ? html`<div class="group-title">套餐</div>
@@ -92,11 +95,11 @@ export function install(ctx) {
 
   function renderLibrary() {
     return html`<main class="page no-bar">
-      <header class="page-head"><button class="icon-btn" data-act="go-home" aria-label="回首頁">‹</button><h1>食物庫</h1></header>
-      <div class="search">
+      <header class="page-head"><button class="icon-btn" data-act="go-home" aria-label="回首頁">${icon('back')}</button><h1>食物庫</h1></header>
+      <div class="search"><span class="s-ico">${icon('search', { size: 20 })}</span>
         <input type="search" id="lib-search" data-role="lib-search" value="${ctx.libQuery ?? ''}" placeholder="搜尋食物或套餐（例如：拿鐵）" autocomplete="off" enterkeyhint="search" aria-label="搜尋食物或套餐">
       </div>
-      <div class="btn-row"><button class="btn primary" data-act="food-new">＋ 新增食物</button><button class="btn" data-act="preset-new">＋ 新增套餐</button></div>
+      <div class="btn-row"><button class="btn primary" data-act="food-new">${icon('plus', { size: 18 })}新增食物</button><button class="btn" data-act="preset-new">${icon('plus', { size: 18 })}新增套餐</button></div>
       <p class="hint" style="margin-top:8px">改食物的數值只影響之後的紀錄，已記下的不會變。快捷格最多 ${MAX_QUICK_SLOTS} 格，排列在「設定」。</p>
       <div id="lib-results">${libraryResults()}</div>
     </main>`;
@@ -205,8 +208,8 @@ export function install(ctx) {
         ${d.items.map((it, i) => html`<div class="field-row" data-pe-row style="align-items:center">
           <select aria-label="食物">${[html`<option value="">選擇食物…</option>`, ...options.map((f) => html`<option value="${f.id}" ${f.id === it.food_id ? 'selected' : ''}>${f.short_label}${f.archived ? '（已封存）' : ''}</option>`)]}</select>
           <input type="number" inputmode="decimal" step="any" min="0" value="${it.qty}" aria-label="份數" style="max-width:90px">
-          <button class="icon-btn" data-act="pe-remove" data-i="${i}" aria-label="移除這一項" style="flex:none">✕</button></div>`)}
-        <button class="btn" data-act="pe-add">＋ 新增一項</button>
+          <button class="icon-btn" data-act="pe-remove" data-i="${i}" aria-label="移除這一項" style="flex:none">${icon('close', { size: 18 })}</button></div>`)}
+        <button class="btn" data-act="pe-add">${icon('plus', { size: 18 })}新增一項</button>
         ${t ? html`<div class="msg ok">合計 ${fmtKcal(t.kcal)} kcal・蛋白質 ${fmtGram(t.protein_known_g)} g${t.protein_unknown_count ? `（另 ${t.protein_unknown_count} 項未知）` : ''}</div>` : ''}
         <div class="btn-row"><button class="btn primary" data-act="pe-save">儲存</button>
           ${existing ? html`<button class="btn danger" data-act="pe-archive" data-id="${existing.id}">${existing.archived ? '還原' : '封存'}</button>` : ''}</div>`,
@@ -221,10 +224,10 @@ export function install(ctx) {
     return slots.map((s, i) => {
       const t = s.type === 'preset' ? app.presets.get(s.id) : app.foods.get(s.id);
       const name = t ? (t.label ?? t.short_label) : '（已不存在）';
-      return html`<div class="slot-row"><span class="nm">${i + 1}. ${s.type === 'preset' ? '★ ' : ''}${name}</span>
-        <button class="icon-btn" data-act="slot-up" data-i="${i}" ${i === 0 ? 'disabled' : ''} aria-label="上移">↑</button>
-        <button class="icon-btn" data-act="slot-down" data-i="${i}" ${i === slots.length - 1 ? 'disabled' : ''} aria-label="下移">↓</button>
-        <button class="icon-btn" data-act="slot-remove" data-i="${i}" aria-label="移出快捷格">✕</button></div>`;
+      return html`<div class="slot-row"><span class="nm">${i + 1}. ${s.type === 'preset' ? html`<span class="tag tag-preset">套餐</span> ` : ''}${name}</span>
+        <button class="icon-btn" data-act="slot-up" data-i="${i}" ${i === 0 ? 'disabled' : ''} aria-label="上移">${icon('up', { size: 18 })}</button>
+        <button class="icon-btn" data-act="slot-down" data-i="${i}" ${i === slots.length - 1 ? 'disabled' : ''} aria-label="下移">${icon('down', { size: 18 })}</button>
+        <button class="icon-btn" data-act="slot-remove" data-i="${i}" aria-label="移出快捷格">${icon('close', { size: 18 })}</button></div>`;
     });
   }
 
@@ -233,7 +236,7 @@ export function install(ctx) {
     const last = s.last_export_at ? fmtDateTime(s.last_export_at) : '還沒備份過';
     const persisted = ctx.persisted === true ? '已要求瀏覽器盡量保留' : ctx.persisted === false ? '瀏覽器未保證保留（請定期備份）' : '未知';
     return html`<main class="page no-bar">
-      <header class="page-head"><button class="icon-btn" data-act="go-home" aria-label="回首頁">‹</button><h1>設定</h1></header>
+      <header class="page-head"><button class="icon-btn" data-act="go-home" aria-label="回首頁">${icon('back')}</button><h1>設定</h1></header>
 
       <section class="settings-block"><h2>每日目標與換日</h2>
         <div class="field-row">
@@ -249,7 +252,7 @@ export function install(ctx) {
 
       <section class="settings-block"><h2>首頁快捷格（${s.quick_slots.length}／${MAX_QUICK_SLOTS}）</h2>
         <div>${slotRows()}</div>
-        <button class="btn" data-act="slot-add-open" ${s.quick_slots.length >= MAX_QUICK_SLOTS ? 'disabled' : ''}>＋ 加入快捷格</button>
+        <button class="btn" data-act="slot-add-open" ${s.quick_slots.length >= MAX_QUICK_SLOTS ? 'disabled' : ''}>${icon('plus', { size: 18 })}加入快捷格</button>
       </section>
 
       <section class="settings-block"><h2>備份與還原</h2>
@@ -257,7 +260,7 @@ export function install(ctx) {
         <div class="btn-row"><button class="btn primary" data-act="export-download">下載備份檔</button>
           ${canShareFiles() ? html`<button class="btn" data-act="export-share">分享備份檔</button>` : ''}</div>
         <button class="btn" data-act="export-copy">複製備份文字</button>
-        <div class="btn-row"><button class="btn" data-act="import-full">還原備份（完整取代）</button>
+        <div class="btn-row"><button class="btn danger" data-act="import-full">還原備份（完整取代）</button>
           <button class="btn" data-act="import-library">匯入食物庫</button></div>
         <button class="btn link" data-act="export-library">只匯出食物庫</button>
         ${app.hasPreImportSnapshot ? html`<button class="btn" data-act="restore-pre">復原到上次匯入前（${fmtDateTime(app.preImportSnapshotAt)}）</button>` : ''}
@@ -279,7 +282,7 @@ export function install(ctx) {
     sheet.show({
       title: '加入快捷格',
       body: html`${presets.length + foods.length === 0 ? html`<p class="hint">沒有可加入的項目了。</p>` : ''}
-        <div class="list">${presets.map((p) => html`<button class="row" data-act="slot-add" data-type="preset" data-id="${p.id}"><span class="main"><span class="name">★ ${p.label}</span></span></button>`)}
+        <div class="list">${presets.map((p) => html`<button class="row" data-act="slot-add" data-type="preset" data-id="${p.id}"><span class="main"><span class="name"><span class="tag tag-preset">套餐</span> ${p.label}</span></span></button>`)}
         ${foods.map((f) => html`<button class="row" data-act="slot-add" data-type="food" data-id="${f.id}"><span class="main"><span class="name">${f.short_label}</span><br><span class="meta">${foodMeta(f)}</span></span></button>`)}</div>`,
     });
   }
@@ -326,7 +329,7 @@ export function install(ctx) {
         </ul></div>` : ''}
         ${plan?.warnings.length ? html`<div class="msg warn"><ul>${plan.warnings.slice(0, 6).map((w) => html`<li>${w}</li>`)}</ul></div>` : ''}
         ${!full && !st.first && plan?.ok ? html`<label class="checkline"><input type="checkbox" data-act="imp-settings" ${st.applySettings ? 'checked' : ''}> 同時套用檔案裡的設定（目標、換日時間、快捷格）</label>` : ''}
-        ${full ? html`<button class="btn" data-act="imp-backup-first">${st.backedUp ? '✓ 已下載目前備份' : '先下載目前備份'}</button>
+        ${full ? html`<button class="btn" data-act="imp-backup-first">${st.backedUp ? html`${icon('check', { size: 18 })}已下載目前備份` : '先下載目前備份'}</button>
           <label class="checkline"><input type="checkbox" data-act="imp-ack" ${st.ack ? 'checked' : ''}> 我了解取代後，這支手機現有的資料會被備份檔取代</label>` : ''}
         <button class="btn ${full ? 'danger' : 'primary'}" data-act="imp-apply" ${canApply ? '' : 'disabled'}>${full ? '確認完整取代' : st.first ? '匯入並開始使用' : '確認匯入'}</button>`,
     });

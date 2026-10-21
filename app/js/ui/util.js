@@ -1,6 +1,7 @@
 // 畫面共用工具：HTML 樣板（自動跳脫）、提示、底部面板、剪貼簿、檔案下載。
 // 所有使用者或 GPT 輸入的文字都要經過 esc，避免匯入檔案或貼上內容夾帶 HTML。
 
+import { icon } from './icons.js';
 import { prefersReducedMotion } from './morph.js';
 
 export class Raw {
@@ -86,7 +87,7 @@ export function createSheetManager(root) {
     root.classList.toggle('swap', swapping); // 同一個面板換內容時不重播進場動畫
     root.innerHTML = html`<div class="backdrop" data-act="sheet-close"></div>
       <section class="sheet" role="dialog" aria-modal="true" aria-label="${title}">
-        <header class="sheet-head"><h2>${title}</h2><button class="icon-btn" data-act="sheet-close" aria-label="關閉">✕</button></header>
+        <header class="sheet-head"><h2>${title}</h2><button class="icon-btn" data-act="sheet-close" aria-label="關閉">${icon('close')}</button></header>
         <div class="sheet-body">${body}</div>
       </section>`.s;
     onMount?.(root);
