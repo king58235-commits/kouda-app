@@ -1,0 +1,112 @@
+{
+  "format": "kouda-backup",
+  "schema_version": 1,
+  "scope": "library",
+  "created_at": "2026-01-01T00:00:00+08:00",
+  "note": "測試用假資料，不是任何人的飲食紀錄。",
+  "foods": [
+    {
+      "id": "t_latte",
+      "short_label": "測試拿鐵",
+      "full_name": "測試拿鐵（蛋白質未知）",
+      "kind": "single",
+      "unit": "杯",
+      "kcal_book": 245,
+      "kcal_low": null,
+      "kcal_high": null,
+      "protein_book": null,
+      "source_type": "legacy_estimate",
+      "source_note": "測試",
+      "needs_confirm": true,
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "t_egg",
+      "short_label": "測試蛋",
+      "full_name": "測試蛋",
+      "kind": "single",
+      "unit": "顆",
+      "kcal_book": 75,
+      "kcal_low": null,
+      "kcal_high": null,
+      "protein_book": 6,
+      "source_type": "legacy_estimate",
+      "source_note": "測試",
+      "needs_confirm": false,
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "t_box",
+      "short_label": "測試餐盒",
+      "full_name": "測試餐盒",
+      "kind": "single",
+      "unit": "份",
+      "kcal_book": 470,
+      "kcal_low": null,
+      "kcal_high": null,
+      "protein_book": 42,
+      "source_type": "legacy_estimate",
+      "source_note": "測試",
+      "needs_confirm": true,
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "t_soy",
+      "short_label": "測試豆漿",
+      "full_name": "測試豆漿拿鐵",
+      "kind": "single",
+      "unit": "杯",
+      "kcal_book": 120,
+      "kcal_low": null,
+      "kcal_high": null,
+      "protein_book": 8,
+      "source_type": "label",
+      "source_note": "測試",
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "t_meal",
+      "short_label": "測試整餐",
+      "full_name": "測試整餐模板",
+      "kind": "opaque",
+      "unit": "份",
+      "kcal_book": 620,
+      "kcal_low": 490,
+      "kcal_high": 760,
+      "protein_book": 43,
+      "source_type": "legacy_estimate",
+      "source_note": "測試",
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    }
+  ],
+  "presets": [
+    {
+      "id": "t_lunch",
+      "label": "測試午餐",
+      "items": [
+        { "food_id": "t_box", "qty": 1 },
+        { "food_id": "t_egg", "qty": 2 },
+        { "food_id": "t_soy", "qty": 1 }
+      ],
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    }
+  ],
+  "settings": {
+    "kcal_goal_default": 1800,
+    "protein_goal_default": 110,
+    "day_boundary_hour": 5,
+    "quick_slots": [
+      { "type": "food", "id": "t_latte" },
+      { "type": "food", "id": "t_egg" },
+      { "type": "preset", "id": "t_lunch" },
+      { "type": "food", "id": "t_meal" }
+    ],
+    "last_export_at": null
+  }
+}
