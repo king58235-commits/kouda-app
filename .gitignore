@@ -1,0 +1,11 @@
+# 個人資料：種子、備份、匯出檔一律不進儲存庫
+private/
+*.backup.json
+kouda-backup-*.json
+kouda-library-*.json
+*.xlsx
+Form_Responses*
+
+node_modules/
+.DS_Store
+Thumbs.db
