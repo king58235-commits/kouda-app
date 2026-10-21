@@ -3,6 +3,7 @@ import { parseBackupText } from '../core/backup.js';
 import { LEVEL_LABELS, MAX_QUICK_SLOTS, SOURCE_LABELS, SOURCE_TYPES } from '../core/constants.js';
 import { fileStamp, fmtDateTime, fmtGram, fmtKcal } from '../core/format.js';
 import { foodFromForm, presetFromForm, slotKey } from '../core/library.js';
+import { searchLibrary } from '../core/search.js';
 import { presetTotals } from '../core/summary.js';
 import {
   canShareFiles, copyText, downloadText, html, shareFile,
@@ -69,34 +70,49 @@ export function install(ctx) {
       <button class="btn" data-act="preset-edit" data-id="${p.id}" aria-label="編輯 ${p.label}">編輯</button></div>`;
   }
 
+  // 搜尋結果區（輸入時只更新這一塊，輸入框不會被重畫、鍵盤不會收起來）
+  function libraryResults() {
+    const query = ctx.libQuery ?? '';
+    const searching = query.trim() !== '';
+    const found = searchLibrary({ foods: app.foods, presets: app.presets, query });
+    const livePresets = found.presets.filter((p) => !p.archived);
+    const liveFoods = found.foods.filter((f) => !f.archived);
+    const arch = [...found.foods.filter((f) => f.archived), ...found.presets.filter((p) => p.archived)];
+    if (searching && !livePresets.length && !liveFoods.length && !arch.length) {
+      return html`<div class="empty-state">找不到「${query.trim()}」。<br>
+        <button class="btn primary" style="margin-top:10px" data-act="food-new-named" data-name="${query.trim()}">＋ 新增食物「${query.trim()}」</button></div>`;
+    }
+    return html`
+      ${livePresets.length || !searching ? html`<div class="group-title">套餐</div>
+        <div class="list">${livePresets.map(presetRow)}${livePresets.length ? '' : html`<div class="empty-state">還沒有套餐</div>`}</div>` : ''}
+      ${liveFoods.length || !searching ? html`<div class="group-title">食物</div>
+        <div class="list">${liveFoods.map(foodRow)}${liveFoods.length ? '' : html`<div class="empty-state">還沒有食物，先按「新增食物」或到設定匯入。</div>`}</div>` : ''}
+      ${arch.length ? html`<div class="group-title">已封存</div><div class="list">${arch.map((x) => (x.items ? presetRow(x) : foodRow(x)))}</div>` : ''}`;
+  }
+
   function renderLibrary() {
-    const foods = [...app.foods.values()];
-    const presets = [...app.presets.values()];
-    const act = foods.filter((f) => !f.archived);
-    const arch = [...foods.filter((f) => f.archived), ...presets.filter((p) => p.archived)];
     return html`<main class="page no-bar">
       <header class="page-head"><button class="icon-btn" data-act="go-home" aria-label="回首頁">‹</button><h1>食物庫</h1></header>
+      <div class="search">
+        <input type="search" id="lib-search" data-role="lib-search" value="${ctx.libQuery ?? ''}" placeholder="搜尋食物或套餐（例如：拿鐵）" autocomplete="off" enterkeyhint="search" aria-label="搜尋食物或套餐">
+      </div>
       <div class="btn-row"><button class="btn primary" data-act="food-new">＋ 新增食物</button><button class="btn" data-act="preset-new">＋ 新增套餐</button></div>
       <p class="hint" style="margin-top:8px">改食物的數值只影響之後的紀錄，已記下的不會變。快捷格最多 ${MAX_QUICK_SLOTS} 格，排列在「設定」。</p>
-      <div class="group-title">套餐</div>
-      <div class="list">${presets.filter((p) => !p.archived).map(presetRow)}${presets.some((p) => !p.archived) ? '' : html`<div class="empty-state">還沒有套餐</div>`}</div>
-      <div class="group-title">食物</div>
-      <div class="list">${act.map(foodRow)}${act.length ? '' : html`<div class="empty-state">還沒有食物，先按「新增食物」或到設定匯入。</div>`}</div>
-      ${arch.length ? html`<div class="group-title">已封存</div><div class="list">${arch.map((x) => (x.items ? presetRow(x) : foodRow(x)))}</div>` : ''}
+      <div id="lib-results">${libraryResults()}</div>
     </main>`;
   }
 
   // ================= 食物編輯 =================
 
-  function foodEditor(id = null) {
+  function foodEditor(id = null, prefill = {}) {
     const f = id ? app.foods.get(id) : null;
     const inQuick = f ? app.settings.quick_slots.some((s) => s.type === 'food' && s.id === f.id) : false;
     const v = f ?? { kind: 'single', unit: '份', source_type: 'rough', needs_confirm: false };
     sheet.show({
       title: f ? `編輯：${f.short_label}` : '新增食物',
       body: html`
-        <div class="field"><label for="fe-short">按鈕上的短名稱（5 個字內最清楚）</label><input type="text" id="fe-short" maxlength="8" value="${f?.short_label ?? ''}"></div>
-        <div class="field"><label for="fe-full">完整名稱（給 GPT 看）</label><input type="text" id="fe-full" maxlength="60" value="${f?.full_name ?? ''}"></div>
+        <div class="field"><label for="fe-short">按鈕上的短名稱（5 個字內最清楚）</label><input type="text" id="fe-short" maxlength="8" value="${f?.short_label ?? prefill.short_label ?? ''}"></div>
+        <div class="field"><label for="fe-full">完整名稱（給 GPT 看）</label><input type="text" id="fe-full" maxlength="60" value="${f?.full_name ?? prefill.full_name ?? ''}"></div>
         <div class="field-row">
           <div class="field"><label for="fe-kind">類型</label><select id="fe-kind" data-role="fe-kind">
             <option value="single" ${v.kind === 'single' ? 'selected' : ''}>單品</option>
@@ -347,6 +363,7 @@ export function install(ctx) {
     'setup-blank': guard(async () => { await app.startBlank(); ctx.render(); }),
 
     'food-new': () => foodEditor(null),
+    'food-new-named': (el) => foodEditor(null, { short_label: [...el.dataset.name].slice(0, 8).join(''), full_name: el.dataset.name }),
     'food-edit': (el) => foodEditor(el.dataset.id),
     'food-save': guard((el) => saveFood(el.dataset.id || null)),
     'food-archive': guard((el) => archiveFood(el.dataset.id).then(() => ctx.render())),
@@ -427,6 +444,11 @@ export function install(ctx) {
   };
 
   const inputs = {
+    'lib-search': (el) => {
+      ctx.libQuery = el.value;
+      const box = document.getElementById('lib-results');
+      if (box) box.innerHTML = libraryResults().s;
+    },
     'imp-text': (el) => {
       ctx.imp.text = el.value;
       clearTimeout(ctx.impTimer);

@@ -4,19 +4,24 @@
 import {
   APP_VERSION, buildBackup, defaultSettings, planImport, serializeBackup,
 } from './core/backup.js';
+import { foodUsage, planDecrementFood, planDecrementPreset, presetUsage } from './core/adjust.js';
+import { findDuplicatePreset, findSameName, foodDraftFromEntry } from './core/compose.js';
 import { SCHEMA_VERSION } from './core/constants.js';
+import { planCopy, selectableUnits } from './core/copy.js';
 import { addDays, boundaryHint, dietDayOf, formatLocalDate } from './core/day.js';
 import { newDay, withGoals } from './core/days.js';
+import { fmtDay } from './core/format.js';
 import { buildSummary } from './core/gptSummary.js';
 import { markDuplicates, parseGptText } from './core/gptParse.js';
 import { newId } from './core/ids.js';
 import {
-  addSlot, foodFromGptItem, foodReferences, moveSlot, newFoodId, removeSlot,
+  addSlot, foodFromGptItem, foodReferences, moveSlot, newFoodId, newPresetId, removeSlot,
 } from './core/library.js';
 import {
   canMergeQuickTap, entriesFromPreset, entryFromFood, gptEntry, latestEntry, roughEntry,
   withDietDay, withLevel, withQty, withValues,
 } from './core/ledger.js';
+import { recentAndFrequent } from './core/recent.js';
 import { dayTotals, presetTotals } from './core/summary.js';
 import { validateFood, validatePreset } from './core/validate.js';
 import { keyOf, STORE_NAMES } from './store/schema.js';
@@ -147,22 +152,26 @@ export class KoudaApp {
     return rows;
   }
 
+  // 快捷卡片。count/total＝今天這個食物被記了多少（含套餐裡的）；removable＝減號真正能扣回的獨立份數。
   quickGrid(day = this.workingDay) {
-    const today = this.entriesOf(day);
+    const all = [...this.db.entries.values()];
     return this.settings.quick_slots.map((slot) => {
       if (slot.type === 'preset') {
         const p = this.db.presets.get(slot.id);
-        if (!p) return { ...slot, missing: true, label: '（已不存在）', count: 0 };
-        const groups = new Set(today.filter((e) => e.preset_id === p.id).map((e) => e.group_id));
+        if (!p) return { ...slot, missing: true, label: '（已不存在）', count: 0, total: 0, removable: 0 };
+        const { groups } = presetUsage(all, p.id, day);
         const t = presetTotals(p, this.db.foods);
-        return { ...slot, label: p.label, preset: true, count: groups.size, kcal: t.kcal, archived: p.archived };
+        return {
+          ...slot, label: p.label, preset: true, count: groups, total: groups, removable: groups,
+          fromPreset: 0, fromOther: 0, kcal: t.kcal, archived: p.archived,
+        };
       }
       const f = this.db.foods.get(slot.id);
-      if (!f) return { ...slot, missing: true, label: '（已不存在）', count: 0 };
-      const count = today.filter((e) => e.food_id === f.id).reduce((a, e) => a + e.qty, 0);
+      if (!f) return { ...slot, missing: true, label: '（已不存在）', count: 0, total: 0, removable: 0 };
+      const u = foodUsage(all, f.id, day);
       return {
-        ...slot, label: f.short_label, opaque: f.kind === 'opaque', count, kcal: f.kcal_book,
-        needsConfirm: f.needs_confirm, archived: f.archived,
+        ...slot, label: f.short_label, opaque: f.kind === 'opaque', count: u.total, total: u.total, removable: u.removable,
+        fromPreset: u.fromPreset, fromOther: u.fromOther, kcal: f.kcal_book, needsConfirm: f.needs_confirm, archived: f.archived,
       };
     });
   }
@@ -322,6 +331,123 @@ export class KoudaApp {
     }
   }
 
+  // ---- 快捷卡片的減號 ----
+
+  // 只減「獨立記下的」食物：最近的一筆減 1 份；份量 ≤ 1 就整筆刪除。套餐裡的組成不受影響。
+  decrementFood(foodId) {
+    return this.#run(async () => {
+      const food = this.db.foods.get(foodId);
+      if (!food) throw new Error('找不到這個食物');
+      const plan = planDecrementFood([...this.db.entries.values()], foodId, this.workingDay, this.now());
+      if (!plan) throw new Error(`今天沒有可以減少的「${food.short_label}」（套餐裡的份數不能用這個減號改）`);
+      let change;
+      let message;
+      if (plan.action === 'delete') {
+        change = { del: { entries: [plan.entry.id] } };
+        message = `已減 ${food.short_label}（這一筆已拿掉）`;
+      } else {
+        change = this.#entryChange({ put: [plan.next] });
+        message = `已減 ${food.short_label}，剩 ×${plan.next.qty}`;
+      }
+      const undoId = await this.#apply(change, message);
+      return { message, undoId };
+    });
+  }
+
+  // 減一組套餐：拿掉最近的一整個群組
+  decrementPreset(presetId) {
+    return this.#run(async () => {
+      const preset = this.db.presets.get(presetId);
+      if (!preset) throw new Error('找不到這個套餐');
+      const plan = planDecrementPreset([...this.db.entries.values()], presetId, this.workingDay);
+      if (!plan) throw new Error(`今天沒有可以減少的「${preset.label}」`);
+      const message = `已減 ${preset.label}（最近一組，${plan.entries.length} 項）`;
+      const undoId = await this.#apply({ del: { entries: plan.entries.map((e) => e.id) } }, message);
+      return { message, undoId };
+    });
+  }
+
+  // ---- 最近／最常吃 ----
+
+  recentItems() {
+    return recentAndFrequent({
+      entries: [...this.db.entries.values()], foods: this.db.foods, presets: this.db.presets,
+      quickSlots: this.settings.quick_slots, today: this.currentDietDay(),
+    });
+  }
+
+  // ---- 複製以前的餐點 ----
+
+  copyUnits(sourceDay) {
+    return selectableUnits([...this.db.entries.values()], sourceDay);
+  }
+
+  // 一律用原紀錄的快照複製到「目前正在記的那天」；ids 由呼叫端保存，同一個確認畫面重複送出不會重複記
+  copyFromDay({ sourceDay, selection, ids }) {
+    return this.#run(async () => {
+      const targetDay = this.workingDay;
+      const units = selectableUnits([...this.db.entries.values()], sourceDay)
+        .filter((u) => selection.some((s) => s.type === u.type && s.id === u.id));
+      if (!units.length) throw new Error('沒有選任何項目（或原紀錄已被刪除）');
+      const entries = planCopy({ units, targetDay, nowMs: this.now().getTime(), ids });
+      const fresh = entries.filter((e) => !this.db.entries.has(e.id));
+      if (!fresh.length) return { message: '這些項目已經複製過了', undoId: null, count: 0 };
+      const message = `已複製 ${fresh.length} 筆到 ${fmtDay(targetDay)}`;
+      const undoId = await this.#apply(this.#entryChange({ put: fresh }), message);
+      return { message, undoId, count: fresh.length };
+    });
+  }
+
+  // ---- 從今日已記建立套餐 ----
+
+  // 沒有食物庫對應的紀錄（粗估／GPT 估算）→ 明確存成食物。不會修改原紀錄。
+  saveEntryAsFood(entryId) {
+    return this.#run(async () => {
+      const e = this.db.entries.get(entryId);
+      if (!e) throw new Error('找不到這筆紀錄');
+      if (e.food_id && this.db.foods.has(e.food_id)) throw new Error('這筆已經有食物庫對應了');
+      const food = foodDraftFromEntry(e, { id: newFoodId(), now: this.now() });
+      const { errors } = validateFood(food);
+      if (errors.length) throw new Error(errors.join('；'));
+      const message = `已把「${food.short_label}」存成食物`;
+      const undoId = await this.#apply({ put: { foods: [food] } }, message);
+      return { message, undoId, foodId: food.id };
+    });
+  }
+
+  // items 只含食物引用與份量；套餐不另存熱量。不會在今天的帳本新增任何紀錄。
+  createPresetFromEntries({ label, items, addToQuick = false }) {
+    return this.#run(async () => {
+      const name = String(label ?? '').trim();
+      if (!name) throw new Error('請輸入套餐名稱');
+      const same = findSameName(this.db.presets, name);
+      if (same) throw new Error(`已經有同名的套餐「${same.label}」`);
+      const dup = findDuplicatePreset(this.db.presets, items);
+      if (dup) throw new Error(`已經有相同內容的套餐「${dup.label}」，不重複建立`);
+      const preset = {
+        id: newPresetId(),
+        label: name,
+        items: items.map((i) => ({ food_id: i.food_id, qty: i.qty })),
+        source_note: '由當日紀錄組成',
+        updated_at: this.now().toISOString(),
+        archived: false,
+      };
+      const { errors } = validatePreset(preset, this.db.foods);
+      if (errors.length) throw new Error(errors.join('；'));
+      const change = { put: { presets: [preset] } };
+      let quickFull = false;
+      if (addToQuick) {
+        try {
+          const quick_slots = addSlot(this.settings.quick_slots, { type: 'preset', id: preset.id });
+          change.put.meta = [{ key: 'settings', value: { ...this.settings, quick_slots } }];
+        } catch { quickFull = true; }
+      }
+      const message = `已建立套餐「${name}」`;
+      const undoId = await this.#apply(change, message);
+      return { message, undoId, presetId: preset.id, quickFull };
+    });
+  }
+
   // ---- GPT 貼上 ----
 
   parseGpt(text) {
@@ -406,7 +532,7 @@ export class KoudaApp {
 
   setEntryValues(id, values) { return this.#edit(id, (e, now) => withValues(e, values, now), '已修改紀錄'); }
 
-  moveEntry(id, day) { return this.#edit(id, (e, now) => withDietDay(e, day, now), `已移到 ${day}`); }
+  moveEntry(id, day) { return this.#edit(id, (e, now) => withDietDay(e, day, now), `已移到 ${fmtDay(day)}`); }
 
   removeEntry(id) {
     return this.#run(async () => {
@@ -435,7 +561,7 @@ export class KoudaApp {
     return this.#run(async () => {
       const now = this.now();
       const list = this.#groupEntries(groupId).map((e) => withDietDay(e, day, now));
-      const label = `已把 ${list[0].group_label} 移到 ${day}`;
+      const label = `已把 ${list[0].group_label} 移到 ${fmtDay(day)}`;
       const undoId = await this.#apply(this.#entryChange({ put: list }), label);
       return { message: label, undoId };
     });

@@ -1,0 +1,262 @@
+{
+  "format": "kouda-backup",
+  "schema_version": 1,
+  "scope": "library",
+  "created_at": "2026-01-01T00:00:00+08:00",
+  "note": "示範用假資料（文件截圖與手動測試用），不是任何人的飲食紀錄。",
+  "foods": [
+    {
+      "id": "d_latte",
+      "short_label": "拿鐵",
+      "full_name": "拿鐵（示範，鮮乳）",
+      "kind": "single",
+      "unit": "杯",
+      "kcal_book": 150,
+      "kcal_low": null,
+      "kcal_high": null,
+      "protein_book": 8,
+      "source_type": "legacy_estimate",
+      "source_note": "示範用假資料",
+      "needs_confirm": true,
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "d_egg",
+      "short_label": "茶葉蛋",
+      "full_name": "茶葉蛋",
+      "kind": "single",
+      "unit": "顆",
+      "kcal_book": 75,
+      "kcal_low": null,
+      "kcal_high": null,
+      "protein_book": 6,
+      "source_type": "label",
+      "source_note": "示範用假資料",
+      "needs_confirm": false,
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "d_onigiri",
+      "short_label": "御飯糰",
+      "full_name": "鮪魚御飯糰",
+      "kind": "single",
+      "unit": "份",
+      "kcal_book": 190,
+      "kcal_low": null,
+      "kcal_high": null,
+      "protein_book": 5,
+      "source_type": "label",
+      "source_note": "示範用假資料",
+      "needs_confirm": false,
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "d_salad",
+      "short_label": "雞胸沙拉",
+      "full_name": "雞胸沙拉",
+      "kind": "single",
+      "unit": "份",
+      "kcal_book": 260,
+      "kcal_low": null,
+      "kcal_high": null,
+      "protein_book": 28,
+      "source_type": "label",
+      "source_note": "示範用假資料",
+      "needs_confirm": false,
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "d_soy",
+      "short_label": "豆漿",
+      "full_name": "無糖豆漿 300 mL",
+      "kind": "single",
+      "unit": "杯",
+      "kcal_book": 100,
+      "kcal_low": null,
+      "kcal_high": null,
+      "protein_book": 8,
+      "source_type": "label",
+      "source_note": "示範用假資料",
+      "needs_confirm": false,
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "d_bento",
+      "short_label": "便當",
+      "full_name": "排骨便當（整份）",
+      "kind": "opaque",
+      "unit": "份",
+      "kcal_book": 800,
+      "kcal_low": 650,
+      "kcal_high": 950,
+      "protein_book": 30,
+      "source_type": "label",
+      "source_note": "示範用假資料",
+      "needs_confirm": false,
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "d_noodle",
+      "short_label": "乾麵",
+      "full_name": "乾麵＋燙青菜",
+      "kind": "single",
+      "unit": "份",
+      "kcal_book": 450,
+      "kcal_low": null,
+      "kcal_high": null,
+      "protein_book": 14,
+      "source_type": "label",
+      "source_note": "示範用假資料",
+      "needs_confirm": false,
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "d_banana",
+      "short_label": "香蕉",
+      "full_name": "香蕉 1 根",
+      "kind": "single",
+      "unit": "根",
+      "kcal_book": 90,
+      "kcal_low": null,
+      "kcal_high": null,
+      "protein_book": 1,
+      "source_type": "label",
+      "source_note": "示範用假資料",
+      "needs_confirm": false,
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "d_yogurt",
+      "short_label": "優格",
+      "full_name": "無糖優格",
+      "kind": "single",
+      "unit": "份",
+      "kcal_book": 120,
+      "kcal_low": null,
+      "kcal_high": null,
+      "protein_book": 9,
+      "source_type": "label",
+      "source_note": "示範用假資料",
+      "needs_confirm": false,
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    }
+  ],
+  "presets": [
+    {
+      "id": "d_p_breakfast",
+      "label": "早餐組合",
+      "items": [
+        {
+          "food_id": "d_onigiri",
+          "qty": 1
+        },
+        {
+          "food_id": "d_egg",
+          "qty": 1
+        },
+        {
+          "food_id": "d_soy",
+          "qty": 1
+        }
+      ],
+      "source_note": "示範",
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "d_p_light",
+      "label": "輕食午餐",
+      "items": [
+        {
+          "food_id": "d_salad",
+          "qty": 1
+        },
+        {
+          "food_id": "d_soy",
+          "qty": 1
+        }
+      ],
+      "source_note": "示範",
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    },
+    {
+      "id": "d_p_tea",
+      "label": "下午茶",
+      "items": [
+        {
+          "food_id": "d_latte",
+          "qty": 1
+        },
+        {
+          "food_id": "d_banana",
+          "qty": 1
+        }
+      ],
+      "source_note": "示範",
+      "updated_at": "2026-01-01T00:00:00+08:00",
+      "archived": false
+    }
+  ],
+  "settings": {
+    "kcal_goal_default": 1800,
+    "protein_goal_default": 110,
+    "day_boundary_hour": 5,
+    "quick_slots": [
+      {
+        "type": "food",
+        "id": "d_latte"
+      },
+      {
+        "type": "food",
+        "id": "d_egg"
+      },
+      {
+        "type": "food",
+        "id": "d_onigiri"
+      },
+      {
+        "type": "food",
+        "id": "d_salad"
+      },
+      {
+        "type": "food",
+        "id": "d_soy"
+      },
+      {
+        "type": "food",
+        "id": "d_bento"
+      },
+      {
+        "type": "food",
+        "id": "d_noodle"
+      },
+      {
+        "type": "food",
+        "id": "d_banana"
+      },
+      {
+        "type": "food",
+        "id": "d_yogurt"
+      },
+      {
+        "type": "preset",
+        "id": "d_p_breakfast"
+      },
+      {
+        "type": "preset",
+        "id": "d_p_light"
+      }
+    ],
+    "last_export_at": null
+  }
+}

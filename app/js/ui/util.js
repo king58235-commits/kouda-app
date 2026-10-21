@@ -1,6 +1,8 @@
 // 畫面共用工具：HTML 樣板（自動跳脫）、提示、底部面板、剪貼簿、檔案下載。
 // 所有使用者或 GPT 輸入的文字都要經過 esc，避免匯入檔案或貼上內容夾帶 HTML。
 
+import { prefersReducedMotion } from './morph.js';
+
 export class Raw {
   constructor(s) { this.s = s; }
 
@@ -59,7 +61,29 @@ export function createSheetManager(root) {
   let queued = null;
   let safety = null;
 
-  function render({ title, body, onMount }) {
+  let closeTimer = null;
+
+  function wipe() {
+    clearTimeout(closeTimer);
+    root.classList.remove('closing', 'swap');
+    root.innerHTML = '';
+  }
+
+  // 關閉時先播退場動畫（約 190 ms）再清掉；期間不擋點擊
+  function closeUi() {
+    clearTimeout(closeTimer);
+    if (prefersReducedMotion()) { wipe(); return; }
+    root.classList.add('closing');
+    closeTimer = setTimeout(() => {
+      if (!open) wipe();
+      else root.classList.remove('closing');
+    }, 190);
+  }
+
+  function render({ title, body, onMount }, swapping) {
+    clearTimeout(closeTimer);
+    root.classList.remove('closing');
+    root.classList.toggle('swap', swapping); // 同一個面板換內容時不重播進場動畫
     root.innerHTML = html`<div class="backdrop" data-act="sheet-close"></div>
       <section class="sheet" role="dialog" aria-modal="true" aria-label="${title}">
         <header class="sheet-head"><h2>${title}</h2><button class="icon-btn" data-act="sheet-close" aria-label="關閉">✕</button></header>
@@ -70,13 +94,14 @@ export function createSheetManager(root) {
 
   function show(opts) {
     if (backInFlight) { queued = opts; return; }
+    const swapping = open;
     if (!open) {
       history.pushState({ sheet: true }, '');
       open = true;
       document.body.classList.add('sheet-open');
     }
     current = opts;
-    render(opts);
+    render(opts, swapping);
   }
 
   function dismissed() {
@@ -88,8 +113,8 @@ export function createSheetManager(root) {
 
   function close() {
     if (!open) return;
-    root.innerHTML = '';
     open = false;
+    closeUi();
     dismissed();
     if (history.state?.sheet) {
       backInFlight = true;
@@ -110,7 +135,7 @@ export function createSheetManager(root) {
 
   window.addEventListener('popstate', () => {
     if (backInFlight) { finishBack(); return; }
-    if (open) { root.innerHTML = ''; open = false; dismissed(); }
+    if (open) { open = false; closeUi(); dismissed(); }
   });
 
   return { show, close, get isOpen() { return open; }, root };
@@ -171,3 +196,23 @@ export async function shareFile(filename, text, type = 'application/json') {
 export const canShareFiles = () => {
   try { return Boolean(navigator.canShare?.({ files: [new File(['x'], 'x.json', { type: 'application/json' })] })); } catch { return false; }
 };
+
+// ---- 點擊回饋 ----
+
+// 卡片上飄起的「+1／−1」。data-keep 讓局部更新不會把它當成多餘元素移除。
+export function fly(el, text) {
+  if (!el || prefersReducedMotion()) return;
+  const s = document.createElement('span');
+  s.className = 'fly';
+  s.setAttribute('data-keep', '');
+  s.setAttribute('aria-hidden', 'true');
+  s.textContent = text;
+  el.appendChild(s);
+  setTimeout(() => s.remove(), 720);
+}
+
+export function tapOk(el) {
+  if (!el || prefersReducedMotion()) return;
+  el.classList.add('tap-ok');
+  setTimeout(() => el.classList.remove('tap-ok'), 320);
+}

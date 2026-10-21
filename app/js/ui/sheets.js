@@ -243,14 +243,21 @@ export function install(ctx) {
     'edit-entry': (el) => entrySheet(el.dataset.id),
     'edit-group': (el) => groupSheet(el.dataset.id),
 
-    'add-level': (el) => act(() => app.quickAddFood(el.dataset.id, { level: el.dataset.level })),
-    'add-submit': (el) => {
+    'add-level': async (el) => {
+      const r = await act(() => app.quickAddFood(el.dataset.id, { level: el.dataset.level }));
+      if (r) ctx.flyCard('food', el.dataset.id, '+1');
+    },
+    'add-submit': async (el) => {
       const custom = num(q('#add-qty-custom')?.value);
       const qty = custom !== null ? custom : Number(chosen('#add-qty') ?? 1);
-      if (!(qty > 0)) { ctx.toast.show('份數必須大於 0', { kind: 'error' }); return null; }
-      return act(() => app.quickAddFood(el.dataset.id, { qty, level: chosen('#add-level') }));
+      if (!(qty > 0)) { ctx.toast.show('份數必須大於 0', { kind: 'error' }); return; }
+      const r = await act(() => app.quickAddFood(el.dataset.id, { qty, level: chosen('#add-level') }));
+      if (r) ctx.flyCard('food', el.dataset.id, `+${qty}`);
     },
-    'preset-add': (el) => act(() => app.quickAddPreset(el.dataset.id)),
+    'preset-add': async (el) => {
+      const r = await act(() => app.quickAddPreset(el.dataset.id));
+      if (r) ctx.flyCard('preset', el.dataset.id, '+1');
+    },
     pick: (el) => {
       el.parentElement.querySelectorAll('button').forEach((b) => b.classList.remove('on'));
       el.classList.add('on');
